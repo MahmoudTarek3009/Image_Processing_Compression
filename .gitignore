@@ -5,9 +5,7 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 
-# Data and model weights are downloaded, not versioned (data/.gitkeep keeps the folder in git)
-data/*
-!data/.gitkeep
+
 *.pt
 *.pth
 *.ckpt

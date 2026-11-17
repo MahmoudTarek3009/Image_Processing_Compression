@@ -1,0 +1,128 @@
+\documentclass[11pt]{article}
+
+% ============================================================
+% Milestone 1 -- Project Proposal & Literature Review Template
+% DIP Team Project
+% ============================================================
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[round]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black, urlcolor=blue!50!black}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+\title{\LARGE Project Proposal \& Literature Review \\[4pt]
+\large {Robustness of Learned Compression to Corrupted/Adversarial Inputs}}
+\author{
+  {Mahmoud Tarek Hamed Sedeek} \and
+  {Omar Mohamed Amin Emam Amer} \and
+  {Ahmed Abdelmotelb Ali Abdelmotelb}
+}
+\date{Milestone 1 --- {November 2, 2026} \\{} CSE681 --- Digital Image Processing}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Learned image codecs compress better than JPEG, but they may behave badly when the input is noisy, blurred or deliberately perturbed. In this project we stress-test a pretrained CompressAI codec on the 24 Kodak images using the \texttt{imagecorruptions} suite, and compare it with JPEG and JPEG2000 under the same corruptions. We measure bitrate, PSNR and a rate-spike ratio. In a first demo on one image, Gaussian noise (severity 5) raised the bitrate of the learned codec by 2.6 times and of JPEG by 2.8 times.
+\end{abstract}
+
+\section{Problem Statement \& Motivation}
+\label{sec:motivation}
+Learned image compression now beats classical codecs such as JPEG and JPEG2000 in rate-distortion performance, so it is likely to be used in real systems. Real images are often noisy or blurry, and an attacker can add small perturbations, so we need to know how stable these codecs are. Previous work shows that learned codecs can fail badly under adversarial attacks, for example with a much higher bitrate or strong artifacts \citep{zhu2024attack,wu2024adversarial}. This project is related to the image compression topic of the course, and asks how a learned codec behaves under corruptions compared with the classical codecs.
+
+\section{Related Work}
+\label{sec:related}
+Table~\ref{tab:refs} lists the main references. Zhu et al.\ and Wu et al.\ attack learned codecs and show large changes in bitrate and quality, and Wu et al.\ trace the bitrate increase to the hyperprior. NIC-RobustBench collects many attacks and defenses in one toolkit, and Liang et al.\ propose a cheap test-time defense. These papers focus on adversarial attacks. Our project first looks at common corruptions from the suite of \citet{michaelis2019benchmarking} and compares directly with JPEG and JPEG2000. Adversarial attacks are our stretch goal.
+
+\begin{table}[h]
+\centering
+\caption{Key references.}
+\label{tab:refs}
+\begin{tabular}{@{}p{0.30\linewidth}p{0.12\linewidth}p{0.45\linewidth}@{}}
+\toprule
+\textbf{Reference} & \textbf{Year} & \textbf{Relevance to this project} \\
+\midrule
+\citep{bychkov2025nic} & 2025 & Benchmark with 8 attacks and 9 defenses for neural image compression. \\
+\citep{zhu2024attack} & 2024 & FGSM/PGD on CompressAI models; worst case 19.15$\times$ higher bitrate. Close to our setup. \\
+\citep{wu2024adversarial} & 2024 & Attacks 8 codecs; the hyperprior raises the bitrate and IGDN amplifies perturbations. \\
+\citep{liang2026fttr} & 2026 & Fast 1--2 step test-time defense for learned codecs. \\
+\citep{michaelis2019benchmarking} & 2019 & The \texttt{imagecorruptions} suite we use for noise, blur and geometric corruptions. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Dataset \& Baseline Plan}
+\label{sec:data}
+We use all 24 images of the Kodak set (768$\times$512 or 512$\times$768, no subsampling). Kodak was released by Eastman Kodak for unrestricted use. Corruptions are generated with the \texttt{imagecorruptions} library (noise, blur, geometric) at severities 1--5 with a fixed seed (42). The learned codec is the pretrained \texttt{bmshj2018\_hyperprior} from CompressAI \citep{balle2018hyperprior,begaint2020compressai}. The baselines are JPEG and JPEG2000 (Pillow) with fixed quality settings, applied to the same corrupted images.
+
+\begin{table}[h]
+\centering
+\caption{Dataset summary.}
+\label{tab:data}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Dataset} & \textbf{Subset used} & \textbf{Link} \\
+\midrule
+Kodak & all 24 images & \href{https://r0k.us/graphics/kodak/}{r0k.us/graphics/kodak} \\
+\texttt{imagecorruptions} & 3 corruption types, severity 1--5 & \href{https://github.com/bethgelab/imagecorruptions}{github.com/bethgelab/imagecorruptions} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Proposed Method}
+\label{sec:method}
+No model is trained. For every image, corruption and severity we:
+\begin{enumerate}[leftmargin=*]
+  \item corrupt the image with \texttt{imagecorruptions} (same seed every run);
+  \item compress and decode it with the learned codec, JPEG and JPEG2000;
+  \item measure bits per pixel (bpp) from the real bitstream and PSNR between the decoded image and the codec input.
+\end{enumerate}
+The \emph{rate spike} is the bpp on the corrupted image divided by the bpp on the clean image (above 1 is a spike). The \emph{artifact severity} is the drop in PSNR compared with the clean image. The contribution is the comparison and the failure-mode analysis, not a new codec. Earlier work found learned codecs fragile under attack \citep{zhu2024attack,wu2024adversarial}, and our first demo already shows a rate spike under noise, while blur lowers the bitrate.
+
+\section{Feasibility \& Compute Plan}
+\label{sec:feasibility}
+Compute tier: GPU-light. No training is needed, we only run pretrained models, so one experiment is inference on 24 images. Our demo already runs on a laptop without a GPU, so the plan fits the 9-week window.
+
+\subsection{Minimum Viable Deliverable (MVP)}
+The pretrained codec versus JPEG and JPEG2000 on all 24 Kodak images, with 3 corruption types at severity 1--5. We report mean bpp, PSNR and rate ratio for each codec.
+
+\subsection{Stretch Goal}
+FGSM/PGD adversarial perturbations on the learned codec as in \citet{zhu2024attack}, and a gallery of failure cases.
+
+\section{Risk Assessment}
+\label{sec:risk}
+\begin{itemize}[leftmargin=*]
+  \item Adversarial attacks need gradients through the quantizer, which has none. Mitigation: use a noise-based proxy for quantization; if it fails, we keep the corruption-only MVP.
+  \item Running 3 codecs on 24 images and many corruption settings on a CPU may be slow. Mitigation: save the corrupted images, reduce the severities or use crops, and fix the seed so runs are repeatable.
+\end{itemize}
+
+\section{Work Breakdown}
+\label{sec:workbreakdown}
+\begin{table}[h]
+\centering
+\caption{Milestone task allocation (see also the course project catalog entry for this
+project).}
+\label{tab:tasks}
+\begin{tabular}{@{}p{0.12\linewidth}p{0.26\linewidth}p{0.26\linewidth}p{0.26\linewidth}@{}}
+\toprule
+\textbf{Milestone} & \textbf{Student A (Mahmoud)} & \textbf{Student B (Ahmed)} & \textbf{Student C (Omar)} \\
+\midrule
+M1 (Wk 3) & Set up \texttt{imagecorruptions} and the CompressAI demo & Survey and select robustness papers & Define rate-spike and artifact metrics \\
+M2 (Wk 6) & JPEG/JPEG2000 baseline table under corruptions & Reproduce one finding from the literature & Preliminary curves vs.\ corruption severity \\
+M3 (Wk 9) & Final classical-codec table & Full corruption and adversarial sweep & Full comparison and failure-mode gallery \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}
